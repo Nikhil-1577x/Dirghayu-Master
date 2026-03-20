@@ -1,0 +1,142 @@
+{
+  "_comment": "Synonym mapping for common Indian lab biomarker names to canonical names and LOINC codes. This is a starter table and should be extended with real data.",
+  "HbA1c": {
+    "canonical_name": "HbA1c",
+    "loinc": "4548-4",
+    "synonyms": [
+      "HbA1c",
+      "Glycated Hemoglobin",
+      "Glycosylated Hemoglobin",
+      "Hb A1c"
+    ]
+  },
+  "Fasting Glucose": {
+    "canonical_name": "Fasting Glucose",
+    "loinc": "1558-6",
+    "synonyms": [
+      "FBS",
+      "Fasting Blood Sugar",
+      "Fasting Plasma Glucose",
+      "Glucose-F",
+      "Fasting Glucose"
+    ]
+  },
+  "Postprandial Glucose": {
+    "canonical_name": "Postprandial Glucose",
+    "loinc": "20436-2",
+    "synonyms": [
+      "PPBS",
+      "Post Prandial Blood Sugar",
+      "Glucose-PP",
+      "Postprandial Plasma Glucose"
+    ]
+  },
+  "Serum Creatinine": {
+    "canonical_name": "Serum Creatinine",
+    "loinc": "2160-0",
+    "synonyms": [
+      "Creatinine",
+      "S. Creatinine",
+      "Serum Creatinine"
+    ]
+  },
+  "Total Cholesterol": {
+    "canonical_name": "Total Cholesterol",
+    "loinc": "2093-3",
+    "synonyms": [
+      "Total Cholesterol",
+      "Cholesterol-Total",
+      "Serum Cholesterol",
+      "S. Cholesterol",
+      "Cholesterol"
+    ]
+  },
+  "HDL Cholesterol": {
+    "canonical_name": "HDL Cholesterol",
+    "loinc": "2085-9",
+    "synonyms": [
+      "HDL",
+      "HDL Cholesterol",
+      "HDL-C",
+      "High Density Lipoprotein"
+    ]
+  },
+  "LDL Cholesterol": {
+    "canonical_name": "LDL Cholesterol",
+    "loinc": "13457-7",
+    "synonyms": [
+      "LDL",
+      "LDL Cholesterol",
+      "LDL-C",
+      "Low Density Lipoprotein"
+    ]
+  },
+  "Triglycerides": {
+    "canonical_name": "Triglycerides",
+    "loinc": "2571-8",
+    "synonyms": [
+      "Triglycerides",
+      "TG",
+      "Serum Triglycerides",
+      "S. Triglycerides"
+    ]
+  },
+  "Serum Urea": {
+    "canonical_name": "Serum Urea",
+    "loinc": "3094-0",
+    "synonyms": [
+      "Urea",
+      "Blood Urea",
+      "S. Urea",
+      "Serum Urea"
+    ]
+  },
+  "Serum Uric Acid": {
+    "canonical_name": "Serum Uric Acid",
+    "loinc": "3084-1",
+    "synonyms": [
+      "Uric Acid",
+      "S. Uric Acid",
+      "Serum Uric Acid"
+    ]
+  },
+  "Serum Potassium": {
+    "canonical_name": "Serum Potassium",
+    "loinc": "2823-3",
+    "synonyms": [
+      "Potassium",
+      "K+",
+      "S. Potassium",
+      "Serum Potassium"
+    ]
+  },
+  "Serum Sodium": {
+    "canonical_name": "Serum Sodium",
+    "loinc": "2951-2",
+    "synonyms": [
+      "Sodium",
+      "Na+",
+      "S. Sodium",
+      "Serum Sodium"
+    ]
+  },
+  "ALT": {
+    "canonical_name": "ALT",
+    "loinc": "1742-6",
+    "synonyms": [
+      "ALT",
+      "SGPT",
+      "Alanine Transaminase"
+    ]
+  },
+  "AST": {
+    "canonical_name": "AST",
+    "loinc": "1920-8",
+    "synonyms": [
+      "AST",
+      "SGOT",
+      "Aspartate Transaminase"
+    ]
+  }
+}
+

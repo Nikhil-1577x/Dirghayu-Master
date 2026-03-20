@@ -1,0 +1,44 @@
+# Python
+venv/
+venv_new/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Node
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# SQLite / Database
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+
+# Environment / Secrets
+.env
+.env.test
+.env.production
+.env.development
+
+# OS / Editor
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Project Artifacts
+reports/
+ocr_cache/
+test_out.txt
+out_narrative_test.txt
+tsc_errors.txt
+tsc_output.txt
+audit_api.py
+fix_patient_name.py

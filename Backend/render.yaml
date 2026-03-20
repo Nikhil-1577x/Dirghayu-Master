@@ -1,0 +1,17 @@
+# Render Blueprint – Backend (FastAPI)
+# Deploy: Connect GitHub repo, Render will auto-detect this file
+
+services:
+  - type: web
+    name: medication-backend
+    runtime: python
+    plan: free
+
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.0"
+      - key: API_KEY
+        generateValue: true
