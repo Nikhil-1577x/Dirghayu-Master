@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Stethoscope, LogOut, User, Users } from 'lucide-react';
+import { Stethoscope, LogOut, User, Users, MessageCircle } from 'lucide-react';
 import { useRoleStore } from '../store';
 import { listAbhaPanelPatients, type AbhaPatient } from '../api/endpoints';
 
@@ -30,9 +30,21 @@ interface DoctorLayoutProps {
     onSelectPatient: (abhaId: string) => void;
     onManagePatients?: () => void;
     onPatientsLoaded?: (patients: DoctorLayoutPatient[]) => void;
+    /** Opens doctor ↔ CHO chat (uses mapped DB patient for the selected ABHA profile). */
+    onChatCho?: () => void;
+    /** Opens doctor ↔ caretaker chat for the current clinical context (uses mapped DB patient). */
+    onChatCaretaker?: () => void;
 }
 
-export default function DoctorLayout({ children, selectedAbhaId, onSelectPatient, onManagePatients, onPatientsLoaded }: DoctorLayoutProps) {
+export default function DoctorLayout({
+    children,
+    selectedAbhaId,
+    onSelectPatient,
+    onManagePatients,
+    onPatientsLoaded,
+    onChatCho,
+    onChatCaretaker,
+}: DoctorLayoutProps) {
     const navigate = useNavigate();
     const setRole = useRoleStore((s) => s.setRole);
     const [patients, setPatients] = useState<DoctorLayoutPatient[]>(FALLBACK_PATIENTS);
@@ -150,6 +162,67 @@ export default function DoctorLayout({ children, selectedAbhaId, onSelectPatient
                         </div>
                     )}
                 </div>
+
+                {(onChatCho || onChatCaretaker) && (
+                    <div
+                        style={{
+                            padding: '4px 16px 12px',
+                            flexShrink: 0,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 8,
+                        }}
+                    >
+                        {onChatCho && (
+                            <button
+                                type="button"
+                                onClick={onChatCho}
+                                style={{
+                                    width: '100%',
+                                    padding: '10px 12px',
+                                    borderRadius: 10,
+                                    border: '1px solid rgba(139, 92, 246, 0.4)',
+                                    background: 'rgba(139, 92, 246, 0.12)',
+                                    color: '#c4b5fd',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: 8,
+                                    fontSize: 13,
+                                    fontWeight: 600,
+                                }}
+                            >
+                                <MessageCircle size={16} strokeWidth={2} />
+                                Chat · CHO
+                            </button>
+                        )}
+                        {onChatCaretaker && (
+                            <button
+                                type="button"
+                                onClick={onChatCaretaker}
+                                style={{
+                                    width: '100%',
+                                    padding: '10px 12px',
+                                    borderRadius: 10,
+                                    border: '1px solid rgba(5, 150, 105, 0.35)',
+                                    background: 'rgba(5, 150, 105, 0.12)',
+                                    color: '#6ee7b7',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: 8,
+                                    fontSize: 13,
+                                    fontWeight: 600,
+                                }}
+                            >
+                                <MessageCircle size={16} strokeWidth={2} />
+                                Chat · Caretaker
+                            </button>
+                        )}
+                    </div>
+                )}
 
                 {/* Logout */}
                 <div style={{ padding: '12px 16px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>

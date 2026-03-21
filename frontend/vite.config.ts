@@ -18,6 +18,7 @@ export default defineConfig({
       '/iot': { target: 'http://127.0.0.1:8000', changeOrigin: true },
       '/abha': { target: 'http://127.0.0.1:8000', changeOrigin: true },
       '/analyze-report': { target: 'http://127.0.0.1:8000', changeOrigin: true },
+      '/api': { target: 'http://127.0.0.1:8000', changeOrigin: true },
       '/ws': { target: 'ws://127.0.0.1:8000', ws: true },
       '/health': { target: 'http://127.0.0.1:8000', changeOrigin: true },
       '/docs': { target: 'http://127.0.0.1:8000', changeOrigin: true },

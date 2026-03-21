@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Home, AlertTriangle, Calendar, Settings, LogOut, Users, Activity, Pill, CheckCircle2, Globe, RefreshCw } from 'lucide-react';
+import { Home, AlertTriangle, Calendar, Settings, LogOut, Users, Activity, Pill, CheckCircle2, Globe, RefreshCw, MessageCircle } from 'lucide-react';
+import ChatWindow from '../components/ChatWindow';
 import { useRoleStore } from '../store';
 import PatientManager from '../components/PatientManager';
 import { getAlerts, getAppointments, getBiomarkerReports, getMedications, getRiskScore, listPatients } from '../api/endpoints';
@@ -84,6 +85,9 @@ export default function CHODashboard() {
     const [todayVisits, setTodayVisits] = useState<VisitRow[]>([]);
     const [choBiomarkerReports, setChoBiomarkerReports] = useState<Array<{ patientName: string; rows: BiomarkerReportRow[] }>>([]);
     const [patientCount, setPatientCount] = useState(0);
+    const [choPatients, setChoPatients] = useState<Array<{ id: number; name: string }>>([]);
+    const [chatPatientId, setChatPatientId] = useState<number | null>(null);
+    const [showDoctorChat, setShowDoctorChat] = useState(false);
 
     useEffect(() => {
         const onResize = () => setIsMobile(window.innerWidth < 768);
@@ -96,6 +100,8 @@ export default function CHODashboard() {
             try {
                 const patients = await listPatients();
                 setPatientCount(patients.length);
+                setChoPatients(patients.map((p) => ({ id: p.id, name: p.name })));
+                setChatPatientId((prev) => prev ?? (patients[0]?.id ?? null));
                 const details = await Promise.all(
                     patients.map(async (p) => {
                         const [risk, reportRows, meds, alerts, appointments] = await Promise.all([
@@ -219,9 +225,39 @@ export default function CHODashboard() {
             <div style={{ flex: 1, marginLeft: isMobile ? 0 : 260, display: 'flex', flexDirection: 'column', maxWidth: isMobile ? 430 : 'none', width: '100%', marginRight: isMobile ? 'auto' : 0, position: 'relative' }}>
                 {/* Top Bar */}
                 <div style={{ background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)', padding: '20px 20px 24px', color: 'white' }}>
-                    <div style={{ fontSize: 11, opacity: 0.8, marginBottom: 2 }}>{lang === 'en' ? 'Community Health Officer' : 'सामुदायिक स्वास्थ्य अधिकारी'}</div>
-                    <div style={{ fontSize: 20, fontWeight: 700 }}>Anita Pawar</div>
-                    <div style={{ fontSize: 12, opacity: 0.75, marginTop: 2 }}>Aurangabad Block • {patientCount} patients</div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                        <div>
+                            <div style={{ fontSize: 11, opacity: 0.8, marginBottom: 2 }}>{lang === 'en' ? 'Community Health Officer' : 'सामुदायिक स्वास्थ्य अधिकारी'}</div>
+                            <div style={{ fontSize: 20, fontWeight: 700 }}>Anita Pawar</div>
+                            <div style={{ fontSize: 12, opacity: 0.75, marginTop: 2 }}>Aurangabad Block • {patientCount} patients</div>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                if (chatPatientId == null) return;
+                                setShowDoctorChat(true);
+                            }}
+                            disabled={chatPatientId == null}
+                            style={{
+                                flexShrink: 0,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 6,
+                                padding: '8px 12px',
+                                borderRadius: 10,
+                                border: '1px solid rgba(255,255,255,0.5)',
+                                background: 'rgba(255,255,255,0.15)',
+                                color: 'white',
+                                fontSize: 12,
+                                fontWeight: 600,
+                                cursor: chatPatientId == null ? 'not-allowed' : 'pointer',
+                                opacity: chatPatientId == null ? 0.5 : 1,
+                            }}
+                        >
+                            <MessageCircle size={16} />
+                            {lang === 'en' ? 'Doctor' : 'डॉक्टर'}
+                        </button>
+                    </div>
                 </div>
 
                 {/* Content */}
@@ -380,6 +416,62 @@ export default function CHODashboard() {
                     </div>
                 )}
                 </div>
+
+                {showDoctorChat && chatPatientId != null && (
+                    <div
+                        role="dialog"
+                        aria-modal="true"
+                        style={{
+                            position: 'fixed',
+                            inset: 0,
+                            background: 'rgba(15,23,42,0.45)',
+                            zIndex: 2000,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            padding: 16,
+                        }}
+                        onClick={() => setShowDoctorChat(false)}
+                    >
+                        <div
+                            style={{ width: 'min(440px, 100%)', maxHeight: '92vh' }}
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            {choPatients.length > 1 && (
+                                <div style={{ marginBottom: 10, background: 'white', borderRadius: 12, padding: '10px 12px', border: '1px solid rgba(0,0,0,0.08)' }}>
+                                    <label style={{ fontSize: 11, fontWeight: 600, color: '#64748b', display: 'block', marginBottom: 6 }}>
+                                        {lang === 'en' ? 'Patient context' : 'मरीज़'}
+                                    </label>
+                                    <select
+                                        value={chatPatientId}
+                                        onChange={(e) => setChatPatientId(Number(e.target.value))}
+                                        style={{
+                                            width: '100%',
+                                            padding: '8px 10px',
+                                            borderRadius: 8,
+                                            border: '1px solid rgba(0,0,0,0.12)',
+                                            fontSize: 13,
+                                        }}
+                                    >
+                                        {choPatients.map((p) => (
+                                            <option key={p.id} value={p.id}>
+                                                {p.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
+                            <ChatWindow
+                                key={chatPatientId}
+                                patientId={chatPatientId}
+                                selfRole="cho"
+                                peerRole="doctor"
+                                title={lang === 'en' ? 'Chat · Doctor' : 'चैट · डॉक्टर'}
+                                onClose={() => setShowDoctorChat(false)}
+                            />
+                        </div>
+                    </div>
+                )}
 
                 {/* Bottom Nav (mobile only) */}
                 {isMobile && <div style={{ position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: 430, background: 'white', borderTop: '1px solid rgba(0,0,0,0.08)', display: 'flex', padding: '8px 0 env(safe-area-inset-bottom)', boxShadow: '0 -4px 24px rgba(0,0,0,0.08)', zIndex: 50 }}>

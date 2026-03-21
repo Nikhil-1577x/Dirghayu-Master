@@ -404,3 +404,25 @@ export async function removeAbhaPatientFromPanel(abhaId: string): Promise<{ mess
 export async function listAbhaPanelPatients(): Promise<{ patients: AbhaPatient[]; count: number }> {
   return api.get('/abha/patients');
 }
+
+// ─── Chat (REST history; live via WebSocket) ─────────────────────────────────
+
+export interface ChatMessageRow {
+  id: number;
+  sender_id: number;
+  receiver_id: number;
+  sender_role: string;
+  receiver_role: string;
+  message: string;
+  timestamp: string;
+  is_read: boolean;
+  patient_id?: number | null;
+}
+
+export async function getChatHistory(
+  user1: number,
+  user2: number,
+  limit = 500
+): Promise<{ messages: ChatMessageRow[] }> {
+  return api.get(`/api/chat/history/${user1}/${user2}`, { limit });
+}

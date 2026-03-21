@@ -1,8 +1,24 @@
 /**
  * API client for Smart Medication Adherence System backend.
- * Uses VITE_API_URL in dev (proxied via Vite) or production.
+ *
+ * - If `VITE_API_URL` is set → use it (no trailing slash).
+ * - In **development** with empty env → call `http://127.0.0.1:8000` directly so
+ *   `/api/chat`, WebSockets, etc. never hit Vite’s SPA fallback (HTML → “not valid JSON”).
+ * - In **production** with empty env → same-origin (e.g. FastAPI serves `dist`).
  */
-const API_BASE = import.meta.env.VITE_API_URL ?? '';
+function resolveApiBase(): string {
+  const raw = (import.meta.env.VITE_API_URL as string | undefined)?.trim() ?? '';
+  if (raw) return raw.replace(/\/$/, '');
+  if (import.meta.env.DEV) return 'http://127.0.0.1:8000';
+  return '';
+}
+
+export const API_BASE = resolveApiBase();
+
+/** For user-facing errors (e.g. chat troubleshooting). */
+export function getApiBaseUrl(): string {
+  return API_BASE || (typeof window !== 'undefined' ? window.location.origin : '');
+}
 
 export class ApiError extends Error {
   status: number;
@@ -41,8 +57,9 @@ async function request<T>(
     },
   });
 
+  const bodyText = await res.text().catch(() => '');
+
   if (!res.ok) {
-    const bodyText = await res.text().catch(() => '');
     let bodyJson: unknown = undefined;
     try {
       bodyJson = bodyText ? JSON.parse(bodyText) : undefined;
@@ -58,7 +75,21 @@ async function request<T>(
   }
 
   if (res.status === 204) return undefined as T;
-  return res.json();
+
+  const trimmed = bodyText.trimStart();
+  if (trimmed.startsWith('<!') || trimmed.toLowerCase().startsWith('<html')) {
+    throw new ApiError(
+      `API returned HTML instead of JSON (${url}). Restart FastAPI on port 8000 (needs /api/chat/history and /ws/chat), or set VITE_API_URL.`,
+      { status: res.status, url, bodyText }
+    );
+  }
+
+  try {
+    return (bodyText ? JSON.parse(bodyText) : {}) as T;
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : 'Invalid JSON';
+    throw new ApiError(`Invalid JSON from API: ${msg}`, { status: res.status, url, bodyText });
+  }
 }
 
 export const api = {
@@ -90,8 +121,16 @@ export const api = {
 };
 
 export function getWsUrl(patientId: number): string {
-  const base = API_BASE || window.location.origin;
+  const base = API_BASE || (typeof window !== 'undefined' ? window.location.origin : '');
   const wsProtocol = base.startsWith('https') ? 'wss' : 'ws';
-  const host = base ? base.replace(/^https?:\/\//, '') : window.location.host;
+  const host = base.replace(/^https?:\/\//, '');
   return `${wsProtocol}://${host}/ws/${patientId}`;
+}
+
+/** Role-based chat participant id (must match Backend app.utils.chat_ids). */
+export function getChatWsUrl(chatUserId: number): string {
+  const base = API_BASE || (typeof window !== 'undefined' ? window.location.origin : '');
+  const wsProtocol = base.startsWith('https') ? 'wss' : 'ws';
+  const host = base.replace(/^https?:\/\//, '');
+  return `${wsProtocol}://${host}/ws/chat/${chatUserId}`;
 }

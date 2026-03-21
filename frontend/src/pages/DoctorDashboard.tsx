@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, Pill, Calendar, Activity } from 'lucide-react';
+import { AlertTriangle, Pill, Calendar, Activity, MessageCircle } from 'lucide-react';
+import ChatWindow from '../components/ChatWindow';
 import DoctorLayout, { type DoctorLayoutPatient } from '../layouts/DoctorLayout';
 import DeteriorationSignals from '../components/DeteriorationSignals';
 import PatientManager from '../components/PatientManager';
@@ -50,6 +51,7 @@ export default function DoctorDashboard() {
     const [appointments, setAppointments] = useState<Array<{ date: string; doctor: string; type: string }>>([]);
     const [abhaNotice, setAbhaNotice] = useState('');
     const [downloadingReport, setDownloadingReport] = useState(false);
+    const [chatPeer, setChatPeer] = useState<'caretaker' | 'cho' | null>(null);
 
     const patient = useMemo(() => patients.find((p) => p.abha_id === selectedAbhaId) ?? patients[0] ?? null, [patients, selectedAbhaId]);
     const riskColor = riskLevel === 'Critical' ? '#ef4444' : riskLevel === 'High' ? '#f59e0b' : riskLevel === 'Moderate' ? '#3b82f6' : '#10b981';
@@ -107,6 +109,22 @@ export default function DoctorDashboard() {
         })();
     }, [selectedAbhaId]);
 
+    const openChoChat = () => {
+        if (!abhaPatient?.db_patient_id) {
+            setAbhaNotice('Chat needs a mapped local patient (ABHA → DB).');
+            return;
+        }
+        setChatPeer('cho');
+    };
+
+    const openCaretakerChat = () => {
+        if (!abhaPatient?.db_patient_id) {
+            setAbhaNotice('Chat needs a mapped local patient (ABHA → DB).');
+            return;
+        }
+        setChatPeer('caretaker');
+    };
+
     return (
         <DoctorLayout
             selectedAbhaId={selectedAbhaId}
@@ -116,6 +134,8 @@ export default function DoctorDashboard() {
             }}
             onManagePatients={() => setShowManager((v) => !v)}
             onPatientsLoaded={setPatients}
+            onChatCho={openChoChat}
+            onChatCaretaker={openCaretakerChat}
         >
             {/* Patient Header */}
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 28 }}>
@@ -132,17 +152,37 @@ export default function DoctorDashboard() {
                         ))}
                     </div>
                 </div>
-                <div style={{ padding: '14px 20px', borderRadius: 16, background: `${riskColor}15`, border: `1px solid ${riskColor}30`, textAlign: 'center' }}>
-                    <div style={{ fontSize: 32, fontWeight: 900, color: riskColor, lineHeight: 1 }}>{riskScore}</div>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: riskColor, marginTop: 2 }}>{riskLevel.toUpperCase()} RISK</div>
-                    <button
-                        className="btn btn-primary"
-                        onClick={onDownloadReport}
-                        disabled={downloadingReport}
-                        style={{ marginTop: 10, fontSize: 12, padding: '6px 10px' }}
-                    >
-                        {downloadingReport ? 'Generating...' : 'Download Report'}
-                    </button>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'stretch' }}>
+                    <div style={{ padding: '14px 20px', borderRadius: 16, background: `${riskColor}15`, border: `1px solid ${riskColor}30`, textAlign: 'center' }}>
+                        <div style={{ fontSize: 32, fontWeight: 900, color: riskColor, lineHeight: 1 }}>{riskScore}</div>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: riskColor, marginTop: 2 }}>{riskLevel.toUpperCase()} RISK</div>
+                        <button
+                            className="btn btn-primary"
+                            onClick={onDownloadReport}
+                            disabled={downloadingReport}
+                            style={{ marginTop: 10, fontSize: 12, padding: '6px 10px' }}
+                        >
+                            {downloadingReport ? 'Generating...' : 'Download Report'}
+                        </button>
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'flex-end' }}>
+                        <button
+                            type="button"
+                            className="btn"
+                            style={{ fontSize: 12, padding: '8px 12px', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                            onClick={openCaretakerChat}
+                        >
+                            <MessageCircle size={14} /> Caretaker
+                        </button>
+                        <button
+                            type="button"
+                            className="btn"
+                            style={{ fontSize: 12, padding: '8px 12px', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                            onClick={openChoChat}
+                        >
+                            <MessageCircle size={14} /> CHO
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -245,6 +285,34 @@ export default function DoctorDashboard() {
                     </div>
                 ))}
             </div>
+
+            {chatPeer && abhaPatient?.db_patient_id && (
+                <div
+                    role="dialog"
+                    aria-modal="true"
+                    style={{
+                        position: 'fixed',
+                        inset: 0,
+                        background: 'rgba(15,23,42,0.45)',
+                        zIndex: 2000,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: 16,
+                    }}
+                    onClick={() => setChatPeer(null)}
+                >
+                    <div style={{ width: 'min(440px, 100%)', maxHeight: '92vh' }} onClick={(e) => e.stopPropagation()}>
+                        <ChatWindow
+                            patientId={abhaPatient.db_patient_id}
+                            selfRole="doctor"
+                            peerRole={chatPeer}
+                            title={chatPeer === 'caretaker' ? 'Chat · Caretaker' : 'Chat · CHO'}
+                            onClose={() => setChatPeer(null)}
+                        />
+                    </div>
+                </div>
+            )}
         </DoctorLayout>
     );
 }

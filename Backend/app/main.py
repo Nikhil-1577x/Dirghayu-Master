@@ -18,7 +18,7 @@ from pathlib import Path
 from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -51,6 +51,11 @@ async def lifespan(app: FastAPI):
         ensure_iot_tables()
     except Exception as exc:
         logger.warning("IoT table ensure skipped: %s", exc)
+    try:
+        from app.services.chat_service import ensure_chat_tables
+        ensure_chat_tables()
+    except Exception as exc:
+        logger.warning("Chat table ensure skipped: %s", exc)
 
     # 2. Start MQTT consumer
     from app.services.mqtt_consumer import start_mqtt_client
@@ -150,6 +155,8 @@ from app.api.interaction_routes import router as interaction_router
 from app.api.abha_routes import router as abha_router
 from app.api.pdf_routes import router as pdf_router
 from app.api.iot_routes import router as iot_router, legacy_router as iot_legacy_router
+from app.api.chat_routes import router as chat_router
+from app.api.chat_ws import router as chat_ws_router
 
 app.include_router(patient_router)
 app.include_router(biomarker_router)
@@ -158,6 +165,9 @@ app.include_router(adherence_router)
 app.include_router(alert_router)
 app.include_router(report_router)
 app.include_router(risk_router)
+# Chat routes before generic /ws/{patient_id} so /ws/chat/{user_id} is never ambiguous.
+app.include_router(chat_router)
+app.include_router(chat_ws_router)
 app.include_router(ws_router)
 app.include_router(interaction_router)
 app.include_router(abha_router)
@@ -191,8 +201,26 @@ if _FRONTEND_DIST.exists():
     @app.get("/{path:path}", tags=["Frontend"])
     async def serve_frontend(path: str = ""):
         """Serve frontend SPA for client-side routes. / and /health handled above."""
+        # If this handler runs for API namespaces, no API route matched (e.g. stale server).
+        # Return JSON 404 — never send index.html (avoids "Unexpected token '<'" in API clients).
+        if path:
+            first = path.split("/", 1)[0]
+            reserved_first = {
+                "api",
+                "patient",
+                "abha",
+                "iot",
+                "chat",
+                "ws",
+                "docs",
+                "redoc",
+                "openapi.json",
+                "analyze-report",
+            }
+            if first in reserved_first or path.startswith("openapi"):
+                raise HTTPException(status_code=404, detail="Not found")
         if path and not path.startswith(
-            ("api", "patient", "abha", "iot", "ws", "docs", "redoc", "openapi", "analyze-report")
+            ("api", "patient", "abha", "iot", "ws", "chat", "docs", "redoc", "openapi", "analyze-report")
         ):
             file_path = _FRONTEND_DIST / path
             if file_path.is_file():

@@ -1,6 +1,9 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
-import { ChevronRight, Sparkles } from 'lucide-react';
+import { ChevronRight, Sparkles, MessageCircle } from 'lucide-react';
+import { useApiStore } from '../store';
+import ChatWindow from '../components/ChatWindow';
 import MedicineStatusCard from '../components/MedicineStatusCard';
 import RiskScoreGauge from '../components/RiskScoreGauge';
 import BiomarkerChart from '../components/BiomarkerChart';
@@ -22,6 +25,9 @@ function getGreeting() {
 }
 
 export default function Dashboard() {
+  const patientId = useApiStore((s) => s.patientId);
+  const [chatOpen, setChatOpen] = useState(false);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 28, paddingBottom: 48 }}>
       {/* Welcome Banner */}
@@ -125,6 +131,63 @@ export default function Dashboard() {
       <div style={{ animation: 'fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.4s forwards', opacity: 0 }}>
         <DeteriorationSignals />
       </div>
+
+      {patientId != null && patientId > 0 && (
+        <>
+          <button
+            type="button"
+            aria-label="Open chat with doctor"
+            onClick={() => setChatOpen(true)}
+            style={{
+              position: 'fixed',
+              right: 24,
+              bottom: 24,
+              zIndex: 60,
+              width: 52,
+              height: 52,
+              borderRadius: '50%',
+              border: '1px solid var(--accent-border, rgba(5,150,105,0.35))',
+              background: 'var(--accent-primary, #059669)',
+              color: 'white',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              boxShadow: '0 4px 20px rgba(5,150,105,0.35)',
+            }}
+          >
+            <MessageCircle size={24} strokeWidth={2} />
+          </button>
+
+          {chatOpen && (
+            <div
+              role="dialog"
+              aria-modal="true"
+              style={{
+                position: 'fixed',
+                inset: 0,
+                background: 'rgba(15,23,42,0.45)',
+                zIndex: 2000,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: 16,
+              }}
+              onClick={() => setChatOpen(false)}
+            >
+              <div style={{ width: 'min(440px, 100%)', maxHeight: '92vh' }} onClick={(e) => e.stopPropagation()}>
+                <ChatWindow
+                  patientId={patientId}
+                  selfRole="caretaker"
+                  peerRole="doctor"
+                  title="Chat · Doctor"
+                  onClose={() => setChatOpen(false)}
+                />
+              </div>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }
