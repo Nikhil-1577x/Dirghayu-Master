@@ -102,6 +102,7 @@ interface MedicationState {
     addMedication: (med: Omit<Medication, 'id'>) => void;
     setMedicationsFromApi: (meds: Medication[]) => void;
     setAdherenceFromApi: (adherence: { daily_adherence?: unknown; weekly_adherence?: unknown }) => void;
+    updateMedicationStatus: (id: string | number, status: MedicineStatus) => void;
 }
 
 export const useMedicationStore = create<MedicationState>((set) => ({
@@ -140,6 +141,12 @@ export const useMedicationStore = create<MedicationState>((set) => ({
     setAdherenceFromApi: () => {
         /* Adherence heatmap uses mock data - backend doesn't have per-day history yet */
     },
+    updateMedicationStatus: (id, status) =>
+        set((s) => ({
+            todaysMedications: s.todaysMedications.map((m) =>
+                String(m.id) === String(id) ? { ...m, status } : m
+            ),
+        })),
 }));
 
 function generateAdheranceData(): AdherenceDay[] {

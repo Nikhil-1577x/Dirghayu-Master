@@ -59,6 +59,29 @@ def patient_dashboard(id: int):
     if not patient:
         raise HTTPException(status_code=404, detail="Patient not found")
 
+    # Behavioral patterns (last 30 days)
+    behavioral_patterns = []
+    try:
+        from nirogi_ai import detect_patterns
+        from app.utils.time_utils import utcnow
+        from datetime import timedelta
+        cutoff = (utcnow() - timedelta(days=30)).isoformat()
+        dose_history = rows_to_dicts(fetchall(
+            """SELECT d.*, m.schedule_time AS scheduled_time
+               FROM dose_events d
+               JOIN medications m ON d.medication_id = m.id
+               WHERE d.patient_id = ? AND d.timestamp >= ?
+               ORDER BY d.timestamp DESC""",
+            (id, cutoff),
+        ))
+        behavioral_patterns = detect_patterns(dose_history)
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"BEHAVIORAL ERROR: {e}")
+
+    import logging
+    logging.getLogger(__name__).info(f"DASHBOARD: id={id} doses={len(dose_history)} patterns={len(behavioral_patterns)}")
+
     return {
         "patient": dict(patient),
         "latest_biomarkers": get_latest_biomarkers(id),
@@ -66,6 +89,7 @@ def patient_dashboard(id: int):
         "weekly_adherence": get_weekly_adherence(id),
         "daily_adherence": get_daily_adherence(id),
         "recent_alerts": get_alert_history(id)[:10],
+        "behavioral_patterns": behavioral_patterns,
     }
 
 

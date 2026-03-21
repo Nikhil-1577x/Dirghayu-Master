@@ -133,6 +133,18 @@ app.include_router(interaction_router)
 
 
 # ── Health check (must be before frontend catch-all) ───────────────────────────
+@app.on_event("startup")
+async def startup_event():
+    import sys
+    import nirogi_ai
+    print(f"DEBUG: sys.path = {sys.path}", flush=True)
+    print(f"DEBUG: nirogi_ai located at {nirogi_ai.__file__}", flush=True)
+    # Also ensure project root is in path
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if project_root not in sys.path:
+        sys.path.insert(0, project_root)
+        print(f"DEBUG: Added {project_root} to sys.path", flush=True)
+
 @app.get("/", tags=["Health"])
 async def health_check():
     return {

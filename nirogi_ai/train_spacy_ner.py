@@ -54,7 +54,15 @@ def load_annotations(path: Path) -> List[Tuple[str, Dict[str, Any]]]:
     return data
 
 
-def train() -> None:
+    from .paths import get_models_dir
+    models_dir = get_models_dir()
+    
+    if not models_dir:
+        print("Models directory not found. Please ensure 'models' or 'Backend/data/models' exists.")
+        return
+    
+    models_dir.mkdir(parents=True, exist_ok=True)
+
     labeled_path = NER_DIR / "annotations_labeled.jsonl"
     if not labeled_path.is_file():
         raise FileNotFoundError(

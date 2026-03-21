@@ -24,8 +24,8 @@ from pathlib import Path
 import pandas as pd  # type: ignore
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-DATA_DIR = PROJECT_ROOT / "data"
+from .paths import get_data_dir
+DATA_DIR = get_data_dir()
 
 
 def main() -> None:

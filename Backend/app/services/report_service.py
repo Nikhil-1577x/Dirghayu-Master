@@ -143,7 +143,7 @@ def generate_report(patient_id: int) -> str:
 
     # AI Narrative
     story.append(Paragraph("AI Clinical Narrative", h2_style))
-    story.append(Paragraph(narrative, body_style))
+    story.append(Paragraph(narrative.get("narrative", ""), body_style))
     story.append(Spacer(1, 0.4 * cm))
 
     # Medications
@@ -164,8 +164,37 @@ def generate_report(patient_id: int) -> str:
         story.append(_build_table(appt_data, has_header=True))
         story.append(Spacer(1, 0.4 * cm))
 
+    # Behavioral anomalies
+    story.append(Paragraph("Behavioral Anomalies", h2_style))
+    try:
+        from nirogi_ai import detect_patterns
+        from app.utils.time_utils import utcnow
+        from datetime import timedelta
+        
+        cutoff = (utcnow() - timedelta(days=30)).isoformat()
+        dose_history = rows_to_dicts(fetchall(
+            """SELECT d.*, m.schedule_time AS scheduled_time
+               FROM dose_events d
+               JOIN medications m ON d.medication_id = m.id
+               WHERE d.patient_id = ? AND d.timestamp >= ?
+               ORDER BY d.timestamp DESC""",
+            (patient_id, cutoff),
+        ))
+        
+        patterns = detect_patterns(dose_history)
+        if patterns:
+            for p in patterns:
+                p_text = f"<b>{p['type'].replace('_', ' ').capitalize()}</b>: {p['description']}"
+                story.append(Paragraph(p_text, body_style))
+                story.append(Spacer(1, 0.2 * cm))
+        else:
+            story.append(Paragraph("No anomalies detected.", body_style))
+    except Exception as e:
+        logger.error("Failed to detect behavioral patterns: %s", e)
+        story.append(Paragraph("Behavioral analysis unavailable.", body_style))
+
     # Behavioral notes
-    story.append(Paragraph("Behavioral Notes", h2_style))
+    story.append(Paragraph("Clinical Summary", h2_style))
     notes_text = (
         f"Patient demonstrates a weekly adherence rate of {weekly['weekly_score']:.1f}%. "
         f"Risk level is classified as <b>{risk['risk_level']}</b> with a score of {risk['score']:.1f}. "
