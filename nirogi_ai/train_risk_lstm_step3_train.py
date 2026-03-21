@@ -30,10 +30,10 @@ from torch.nn.utils.rnn import pack_padded_sequence  # type: ignore
 from torch.utils.data import DataLoader, Dataset  # type: ignore
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-DATA_DIR = PROJECT_ROOT / "data"
+from .paths import get_models_dir, get_data_dir
+DATA_DIR = get_data_dir()
 PROCESSED_PATH = DATA_DIR / "processed" / "sequences.pkl"
-MODELS_DIR = PROJECT_ROOT / "models"
+MODELS_DIR = get_models_dir()
 MODELS_DIR.mkdir(parents=True, exist_ok=True)
 
 

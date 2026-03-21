@@ -105,7 +105,9 @@ def _load_model_and_config() -> Tuple[Optional[Any], Optional[Dict[str, Any]]]:
     if torch is None:
         return None, None
 
-    models_dir = Path(__file__).resolve().parents[1] / "models"
+    from .paths import get_models_dir
+    models_dir = get_models_dir()
+    
     model_path = models_dir / "risk_lstm.pt"
     cfg_path = models_dir / "feature_config.json"
 

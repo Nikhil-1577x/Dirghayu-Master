@@ -25,17 +25,17 @@ import tempfile
 from typing import Any, Dict
 from pathlib import Path
 
-from fastapi import APIRouter, File, UploadFile, HTTPException, Query
+from fastapi import APIRouter, File, UploadFile, HTTPException, Query, Depends
+from sqlalchemy.orm import Session
 
+from app.database import get_db
 from app.ocr import analyze_report_file
 from app.services.biomarker_trends import (
-    ensure_patient_exists,
-    create_report_id,
-    store_biomarkers_for_report,
     build_history_latest_11_reports,
     generate_trend_ai_summary,
 )
 from app.services.biomarker_parser import normalize_biomarker
+from app.utils.db_utils import fetchone
 
 
 router = APIRouter(tags=["OCR"], include_in_schema=True)
@@ -44,9 +44,19 @@ router = APIRouter(tags=["OCR"], include_in_schema=True)
 @router.post("/analyze-report")
 async def analyze_report(
     file: UploadFile = File(...),
-    patient_id: int = Query(1, description="Patient ID to store biomarker history under"),
+    patient_id: int | None = Query(None, description="Patient ID to store biomarker history under"),
+    patient: int | None = Query(None, description="Backward-compat alias for patient_id"),
+    db: Session = Depends(get_db),
 ) -> Dict[str, Any]:
+    resolved_patient_id = patient_id if patient_id is not None else patient
+    if resolved_patient_id is None:
+        raise HTTPException(status_code=400, detail="patient_id is required")
+
     print("[/analyze-report] hit", flush=True)
+    patient_row = fetchone("SELECT id FROM patients WHERE id = ?", (resolved_patient_id,), db=db)
+    if patient_row is None:
+        raise HTTPException(status_code=404, detail=f"Patient {resolved_patient_id} not found")
+
     if not file.filename:
         raise HTTPException(status_code=400, detail="No file uploaded")
 
@@ -85,24 +95,21 @@ async def analyze_report(
     if status != "success":
         status = "failed"
 
-    # Persist biomarkers per report upload + attempt AI trend summary.
-    # IMPORTANT: OCR + biomarker extraction must still return successfully even if OpenRouter fails,
-    # so the frontend can render biomarkers and show the AI error explicitly.
+    # Preview-only endpoint: do NOT persist anything here.
+    # IMPORTANT: persistence happens in /patient/{id}/biomarkers/ocr only.
+    # This avoids duplicate report entries when frontend calls preview + save.
     trend_summary = ""
     ai_error = None
     try:
-        ensure_patient_exists(patient_id)
-        report_id = create_report_id()
         normalised: Dict[str, Dict[str, Any]] = {}
         if isinstance(structured, dict):
             for k, v in structured.items():
                 nk = normalize_biomarker(str(k)) or str(k)
                 if isinstance(v, dict):
                     normalised[nk] = v
-        inserted = store_biomarkers_for_report(patient_id, report_id, normalised)
-        history, latest_values, report_ids = build_history_latest_11_reports(patient_id, max_rows=500)
+        history, latest_values, report_ids = build_history_latest_11_reports(resolved_patient_id, max_rows=500)
         trend_summary, ai_error = generate_trend_ai_summary(history, latest_values=latest_values, return_error=True)
-        print(f"[/analyze-report] stored_records={inserted} patient_id={patient_id} report_id={report_id}", flush=True)
+        print(f"[/analyze-report] preview-only for patient_id={resolved_patient_id}", flush=True)
     except Exception as exc:
         print(f"[/analyze-report] storage/trend summary failed: {exc!r}", flush=True)
         # Don't fail the entire OCR response; surface the AI failure in-band.

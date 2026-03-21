@@ -18,6 +18,12 @@ BIOMARKER_NAME_MAP: Dict[str, str] = {
     "glucose fasting": "fasting_glucose",
     "fbs": "fasting_glucose",
     "fasting blood sugar": "fasting_glucose",
+    # Random blood sugar
+    "blood sugar random": "glucose_random",
+    "random blood sugar": "glucose_random",
+    "glucose random": "glucose_random",
+    "random glucose": "glucose_random",
+    "rbs": "glucose_random",
     # HbA1c
     "hba1c": "hba1c",
     "hb a1c": "hba1c",

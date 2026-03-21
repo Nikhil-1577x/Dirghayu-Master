@@ -24,8 +24,8 @@ import numpy as np  # type: ignore
 import pandas as pd  # type: ignore
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-DATA_DIR = PROJECT_ROOT / "data"
+from .paths import get_data_dir
+DATA_DIR = get_data_dir()
 PROCESSED_DIR = DATA_DIR / "processed"
 PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
 

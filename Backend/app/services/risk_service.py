@@ -66,7 +66,7 @@ def compute_and_store_risk(patient_id: int) -> dict:
     ts = utcnow_str()
 
     row_id = execute(
-        "INSERT INTO risk_scores (patient_id, score, risk_level, timestamp) VALUES (?, ?, ?, ?)",
+        "INSERT INTO risk_scores (patient_id, score, risk_level, timestamp) VALUES (?, ?, ?, ?) RETURNING id",
         (patient_id, score, level.value, ts),
     )
     logger.info("Risk computed for patient %d: score=%.1f level=%s", patient_id, score, level.value)
@@ -81,4 +81,4 @@ def get_latest_risk(patient_id: int) -> Optional[dict]:
     )
     if row is None:
         return None
-    return dict(row)
+    return row

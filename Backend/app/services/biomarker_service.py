@@ -75,7 +75,7 @@ def add_biomarker(
     ts = timestamp or utcnow_str()
     row_id = execute(
         """INSERT INTO biomarker_readings (patient_id, biomarker_type, value, timestamp)
-           VALUES (?, ?, ?, ?)""",
+           VALUES (?, ?, ?, ?) RETURNING id""",
         (patient_id, biomarker_type, value, ts),
     )
     logger.info("Biomarker added: patient=%d type=%s value=%s", patient_id, biomarker_type, value)
@@ -119,6 +119,23 @@ def get_biomarkers(patient_id: int) -> list[dict]:
     # Return newest-first for API consumers (slope was computed on ASC order above)
     enriched.sort(key=lambda r: r["timestamp"], reverse=True)
     return enriched
+
+
+def get_biomarker_reports(patient_id: int) -> list[dict]:
+    """
+    Return persistent OCR report records (one row per biomarker per report_id).
+    Used by Doctor/CHO report table so all scanned reports remain visible.
+    """
+    rows = fetchall(
+        """
+        SELECT report_id, biomarker_name, value, unit, created_at
+        FROM biomarker_records
+        WHERE patient_id = ?
+        ORDER BY created_at DESC
+        """,
+        (patient_id,),
+    )
+    return rows_to_dicts(rows)
 
 
 def get_latest_biomarkers(patient_id: int) -> dict:
@@ -204,7 +221,7 @@ def get_narrative(patient_id: int) -> dict:
     history, latest_values, report_ids = build_history_latest_11_reports(patient_id, max_rows=500)
     if not report_ids:
         return {
-            "narrative": "No biomarker data available. Upload a lab report to get an AI summary.",
+            "narrative": "",
             "ai_error": None,
         }
 

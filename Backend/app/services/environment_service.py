@@ -33,7 +33,7 @@ def store_environment_reading(
 ) -> int:
     row_id = execute(
         """INSERT INTO environment_readings (patient_id, temperature_c, humidity_pct, timestamp)
-           VALUES (?, ?, ?, ?)""",
+           VALUES (?, ?, ?, ?) RETURNING id""",
         (patient_id, temperature_c, humidity_pct, timestamp),
     )
     logger.debug(

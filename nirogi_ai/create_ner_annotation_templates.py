@@ -24,9 +24,10 @@ from pathlib import Path
 from typing import List, Dict, Any
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-OCR_DIR = PROJECT_ROOT / "data" / "ocr_reports"
-NER_DIR = PROJECT_ROOT / "data" / "ner"
+from .paths import get_data_dir
+DATA_ROOT = get_data_dir()
+OCR_DIR = DATA_ROOT / "ocr_reports"
+NER_DIR = DATA_ROOT / "ner"
 NER_DIR.mkdir(parents=True, exist_ok=True)
 
 

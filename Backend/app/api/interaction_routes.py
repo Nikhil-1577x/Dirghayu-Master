@@ -6,9 +6,11 @@ POST /patient/{id}/medications/check-interactions
   Response: list of interaction objects with severity + clinical note
   Side effect: SEVERE interactions trigger a doctor WhatsApp alert
 """
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
 
+from app.database import get_db
 from app.utils.db_utils import fetchone
 from app.services.drug_interaction_service import check_interactions, trigger_severe_alerts
 
@@ -20,13 +22,13 @@ class InteractionCheckRequest(BaseModel):
 
 
 @router.post("/patient/{patient_id}/medications/check-interactions")
-def check_drug_interactions(patient_id: int, body: InteractionCheckRequest):
+def check_drug_interactions(patient_id: int, body: InteractionCheckRequest, db: Session = Depends(get_db)):
     """
     Check the provided medication list against the drug_interactions table.
     SEVERE interactions will also trigger a doctor WhatsApp alert.
     """
     # Validate patient exists
-    patient = fetchone("SELECT id, name FROM patients WHERE id = ?", (patient_id,))
+    patient = fetchone("SELECT id, name FROM patients WHERE id = ?", (patient_id,), db=db)
     if patient is None:
         raise HTTPException(status_code=404, detail=f"Patient {patient_id} not found")
 
@@ -55,9 +57,9 @@ def check_drug_interactions(patient_id: int, body: InteractionCheckRequest):
 
 
 @router.get("/patient/{patient_id}/environment")
-def get_environment_readings(patient_id: int, limit: int = 50):
+def get_environment_readings(patient_id: int, limit: int = 50, db: Session = Depends(get_db)):
     """Return recent DHT22 temperature/humidity readings for a patient."""
-    patient = fetchone("SELECT id FROM patients WHERE id = ?", (patient_id,))
+    patient = fetchone("SELECT id FROM patients WHERE id = ?", (patient_id,), db=db)
     if patient is None:
         raise HTTPException(status_code=404, detail=f"Patient {patient_id} not found")
 
@@ -67,8 +69,8 @@ def get_environment_readings(patient_id: int, limit: int = 50):
 
 
 @router.get("/drug-interactions")
-def list_drug_interactions():
+def list_drug_interactions(db: Session = Depends(get_db)):
     """Return all seeded drug interactions from the CDSCO database."""
     from app.utils.db_utils import fetchall, rows_to_dicts
-    rows = fetchall("SELECT * FROM drug_interactions ORDER BY severity, drug_a")
+    rows = fetchall("SELECT * FROM drug_interactions ORDER BY severity, drug_a", db=db)
     return {"interactions": rows_to_dicts(rows), "total": len(rows)}

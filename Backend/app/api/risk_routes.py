@@ -2,14 +2,16 @@
 risk_service_routes.py – Risk score endpoint.
 We embed this in patient_routes but expose also as a standalone.
 """
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from sqlalchemy.orm import Session
+from app.database import get_db
 from app.services.risk_service import compute_and_store_risk, get_latest_risk
 
 router = APIRouter(prefix="/patient", tags=["Risk"])
 
 
 @router.get("/{id}/risk")
-def get_risk_score(id: int):
+def get_risk_score(id: int, db: Session = Depends(get_db)):
     """Return the latest risk prediction for a patient. Computes if none exists."""
     risk = get_latest_risk(id)
     if risk is None:
@@ -22,7 +24,7 @@ def get_risk_score(id: int):
 
 
 @router.post("/{id}/risk/compute")
-def trigger_risk_computation(id: int):
+def trigger_risk_computation(id: int, db: Session = Depends(get_db)):
     """Force recompute risk score."""
     try:
         risk = compute_and_store_risk(id)

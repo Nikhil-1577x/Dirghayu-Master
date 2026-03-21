@@ -5,14 +5,13 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-# Load .env from project root
-load_dotenv(dotenv_path=Path(__file__).resolve().parent.parent / ".env")
+# Load .env from project root and override inherited env vars.
+load_dotenv(dotenv_path=Path(__file__).resolve().parent.parent / ".env", override=True)
 
 
 class Settings:
     # ── Database ──────────────────────────────────────────────
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./medication.db")
-    DB_PATH: str = os.getenv("DB_PATH", "medication.db")
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "")
 
     # ── MQTT ─────────────────────────────────────────────────
     MQTT_BROKER: str = os.getenv("MQTT_BROKER", "localhost")
@@ -25,7 +24,10 @@ class Settings:
     # ── Twilio ────────────────────────────────────────────────
     TWILIO_ACCOUNT_SID: str = os.getenv("TWILIO_ACCOUNT_SID", "")
     TWILIO_AUTH_TOKEN: str = os.getenv("TWILIO_AUTH_TOKEN", "")
+    TWILIO_PHONE_NUMBER: str = os.getenv("TWILIO_PHONE_NUMBER", "")
     TWILIO_WHATSAPP_FROM: str = os.getenv("TWILIO_WHATSAPP_FROM", "whatsapp:+14155238886")
+    # Default SMS recipient when patient has no family_phone (e.g. for testing)
+    SMS_DEFAULT_RECIPIENT: str = os.getenv("SMS_DEFAULT_RECIPIENT", "")
 
     # ── Security ──────────────────────────────────────────────
     API_KEY: str = os.getenv("API_KEY", "changeme-super-secret-key")

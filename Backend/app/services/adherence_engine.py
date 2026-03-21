@@ -78,7 +78,7 @@ def record_dose_event(
     """Insert a dose event into the DB and return its id."""
     row_id = execute(
         """INSERT INTO dose_events (patient_id, medication_id, timestamp, status, source)
-           VALUES (?, ?, ?, ?, ?)""",
+           VALUES (?, ?, ?, ?, ?) RETURNING id""",
         (patient_id, medication_id, timestamp, status.value, source.value),
     )
     logger.info(
@@ -142,3 +142,47 @@ def get_missed_doses(patient_id: int) -> list[dict]:
         (patient_id,),
     )
     return rows_to_dicts(rows)
+
+
+def get_adherence_history(patient_id: int, days: int = 365) -> list[dict]:
+    """
+    Return day-wise adherence history for heatmap rendering.
+    Priority per day: MISSED > LATE > TAKEN > no-data.
+    """
+    days = max(1, min(int(days), 365))
+    now = utcnow()
+    start = (now - timedelta(days=days - 1)).replace(hour=0, minute=0, second=0, microsecond=0)
+
+    rows = fetchall(
+        """
+        SELECT timestamp, status
+        FROM dose_events
+        WHERE patient_id = ? AND timestamp >= ?
+        ORDER BY timestamp ASC
+        """,
+        (patient_id, start.isoformat()),
+    )
+
+    per_day: dict[str, set[str]] = {}
+    for r in rows:
+        ts = r.get("timestamp")
+        status = str(r.get("status") or "").lower()
+        if not ts or not status:
+            continue
+        day = parse_iso(str(ts)).date().isoformat()
+        per_day.setdefault(day, set()).add(status)
+
+    out: list[dict] = []
+    for i in range(days):
+        d = (start + timedelta(days=i)).date().isoformat()
+        statuses = per_day.get(d, set())
+        if "missed" in statuses:
+            s = "missed"
+        elif "late" in statuses:
+            s = "late"
+        elif "taken" in statuses:
+            s = "taken"
+        else:
+            s = "no-data"
+        out.append({"date": d, "status": s})
+    return out

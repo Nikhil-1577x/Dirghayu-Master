@@ -27,11 +27,7 @@ def ensure_patient_exists(patient_id: int) -> None:
     row = fetchone("SELECT id FROM patients WHERE id = ?", (patient_id,))
     if row is not None:
         return
-    # Create a minimal placeholder patient for ad-hoc analyze-report usage.
-    execute(
-        "INSERT INTO patients (id, name, age, gender, phone) VALUES (?, ?, ?, ?, ?)",
-        (patient_id, f"Patient {patient_id}", 50, "unknown", "+910000000000"),
-    )
+    raise ValueError(f"Patient {patient_id} not found")
 
 
 def create_report_id() -> str:
@@ -79,7 +75,7 @@ def fetch_recent_history(patient_id: int, max_rows: int = 200) -> Dict[str, list
         SELECT biomarker_name, value, created_at
         FROM biomarker_records
         WHERE patient_id = ?
-        ORDER BY datetime(created_at) DESC
+        ORDER BY created_at DESC
         LIMIT ?
         """,
         (patient_id, max_rows),
@@ -101,7 +97,7 @@ def fetch_last_report_ids(patient_id: int, limit_reports: int = 11) -> list[str]
         FROM biomarker_records
         WHERE patient_id = ?
         GROUP BY report_id
-        ORDER BY datetime(last_ts) DESC
+        ORDER BY last_ts DESC
         LIMIT ?
         """,
         (patient_id, limit_reports),
@@ -123,7 +119,7 @@ def fetch_history_for_reports(patient_id: int, report_ids: list[str]) -> tuple[d
         SELECT report_id, biomarker_name, value, unit, created_at
         FROM biomarker_records
         WHERE patient_id = ? AND report_id IN ({placeholders})
-        ORDER BY datetime(created_at) DESC
+        ORDER BY created_at DESC
         """,
         (patient_id, *report_ids),
     )
@@ -160,7 +156,7 @@ def build_history_latest_11_reports(patient_id: int, max_rows: int = 400) -> tup
         SELECT report_id, biomarker_name, value, unit, created_at
         FROM biomarker_records
         WHERE patient_id = ?
-        ORDER BY datetime(created_at) DESC
+        ORDER BY created_at DESC
         LIMIT ?
         """,
         (patient_id, max_rows),

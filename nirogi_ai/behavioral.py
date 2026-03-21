@@ -40,9 +40,14 @@ def detect_patterns(dose_history: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     return patterns
 
 
-def _slot_from_time(iso_timestamp: str) -> str:
-    dt = datetime.fromisoformat(iso_timestamp)
-    hour = dt.hour
+def _slot_from_time(iso_or_time: str) -> str:
+    if ":" in iso_or_time and "T" not in iso_or_time and len(iso_or_time) <= 5:
+        # Handle HH:MM format
+        hour = int(iso_or_time.split(":")[0])
+    else:
+        # Handle ISO format
+        dt = datetime.fromisoformat(iso_or_time)
+        hour = dt.hour
     if 5 <= hour < 12:
         return "morning"
     if 12 <= hour < 17:
@@ -59,13 +64,13 @@ def _detect_consistently_skipped_slots(
 
     for dose in dose_history:
         scheduled = dose.get("scheduled_time")
-        status = dose.get("status")
-        if not scheduled or status not in {"on_time", "late", "missed"}:
+        st = (dose.get("status") or "").lower().replace("taken", "on_time")
+        if not scheduled or st not in {"on_time", "late", "missed"}:
             continue
 
         slot = _slot_from_time(scheduled)
         by_slot[slot]["total"] += 1
-        if status == "missed":
+        if st == "missed":
             by_slot[slot]["missed"] += 1
 
     results: List[Dict[str, Any]] = []
@@ -109,14 +114,14 @@ def _detect_rationing_before_refill(
 
     for dose in dose_history:
         day = dose.get("refill_cycle_day")
-        status = dose.get("status")
+        st = (dose.get("status") or "").lower().replace("taken", "on_time")
         if not isinstance(day, int) or day <= 0:
             continue
-        if status not in {"on_time", "late", "missed"}:
+        if st not in {"on_time", "late", "missed"}:
             continue
 
         # Consider early window as days 1–20, late window as day >= 21.
-        taken = status in {"on_time", "late"}
+        taken = st in {"on_time", "late"}
 
         if day <= 20:
             early_total += 1

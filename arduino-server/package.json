@@ -1,0 +1,15 @@
+{
+  "name": "arduino-pillbox-server",
+  "version": "1.0.0",
+  "description": "Hardware bridge for Dirghayu Med Dispenser",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@serialport/parser-readline": "^12.0.0",
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "serialport": "^12.0.0"
+  }
+}

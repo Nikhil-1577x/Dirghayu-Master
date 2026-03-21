@@ -10,7 +10,7 @@ class PatientCreate(BaseModel):
     age: int = Field(..., ge=0, le=120)
     gender: str = Field(..., example="male")
     phone: str = Field(..., example="+1234567890")
-    family_phone: Optional[str] = Field(None, example="+0987654321")
+    family_phone: Optional[str] = Field(None, example="+919172915773")
     doctor_phone: Optional[str] = Field(None, example="+1122334455")
 
 

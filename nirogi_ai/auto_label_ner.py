@@ -23,11 +23,13 @@ from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-NER_DIR = PROJECT_ROOT / "data" / "ner"
+from .paths import get_data_dir
+
+DATA_ROOT = get_data_dir()
+NER_DIR = DATA_ROOT / "ner"
 RAW_PATH = NER_DIR / "annotations_raw.jsonl"
 LABELED_PATH = NER_DIR / "annotations_labeled.jsonl"
-LOINC_PATH = PROJECT_ROOT / "nirogi_ai" / "loinc_table.json"
+LOINC_PATH = Path(__file__).resolve().parent / "loinc_table.json"
 
 
 def load_loinc_synonyms() -> List[str]:

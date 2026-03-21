@@ -79,6 +79,7 @@ def _normalise_name(name: str) -> str:
 
 BIOMARKERS: dict[str, list[str]] = {
     "glucose_fasting": ["glucose, fasting", "fasting glucose", "glucose fasting", "fbs", "fasting (plasma)"],
+    "glucose_random": ["glucose random", "random glucose", "blood sugar random", "random blood sugar", "rbs"],
     "glucose_postprandial": [
         "postprandial glucose",
         "glucose postprandial",
@@ -95,6 +96,7 @@ BIOMARKERS: dict[str, list[str]] = {
 
 BIOMARKER_ALIASES: dict[str, list[str]] = {
     "glucose_fasting": ["glucose fasting", "fasting glucose", "fbs", "gf"],
+    "glucose_random": ["glucose random", "random glucose", "blood sugar random", "random blood sugar", "rbs"],
     "glucose_postprandial": ["postprandial glucose", "ppbs", "2-hour glucose", "2 hour glucose", "pp glucose"],
     "hba1c": ["hba1c", "hb a1c", "glycated hemoglobin", "alc", "a1c"],
 }
@@ -160,7 +162,9 @@ def extract_biomarkers_from_text(raw_text: str) -> Dict[str, Dict[str, Any]]:
         # normalize biomarker names
         key: Optional[str] = None
 
-        if "fasting" in name:
+        if "random" in name and ("glucose" in name or "blood sugar" in name or "sugar" in name):
+            key = "glucose_random"
+        elif "fasting" in name:
             key = "glucose_fasting"
         elif "post" in name or "2-hour" in name or "2hour" in name or "2 hour" in name or "pp" in name:
             key = "glucose_postprandial"
@@ -486,6 +490,7 @@ def llm_extract_biomarkers_from_text(
     }
 
     prefill = _prefill_from_multiline_regex(ocr_text)
+    ocr_lower = (ocr_text or "").lower()
 
     if not api_key:
         # No API key: return empty extraction and no summary.
@@ -576,6 +581,17 @@ def llm_extract_biomarkers_from_text(
         for key in list(empty.keys()):
             if result.get(key) is None and prefill.get(key) is not None:
                 result[key] = prefill[key]
+
+        # Final evidence gate: do not surface biomarkers unless their name appears in OCR text.
+        # This avoids hallucinated fields from model inference.
+        name_evidence = {
+            "glucose_fasting": any(k in ocr_lower for k in ["fasting", "fbs", "glucose fasting", "glucose, fasting"]),
+            "glucose_postprandial": any(k in ocr_lower for k in ["postprandial", "pp", "2 hour", "2-hour", "2hr"]),
+            "hba1c": any(k in ocr_lower for k in ["hba1c", "hb a1c", "a1c", "glycated hemoglobin"]),
+        }
+        for key in list(empty.keys()):
+            if result.get(key) is not None and not name_evidence.get(key, False):
+                result[key] = None
 
         # If AI returned nothing but we have prefill, keep prefill (never empty).
         if not any(v is not None for v in result.values()) and any(v is not None for v in prefill.values()):

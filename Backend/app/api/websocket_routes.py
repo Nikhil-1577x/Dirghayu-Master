@@ -22,6 +22,7 @@ import logging
 from typing import Dict, List
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from app.database import SessionLocal
 
 from app.utils.db_utils import fetchone
 
@@ -96,7 +97,11 @@ async def websocket_endpoint(websocket: WebSocket, patient_id: int):
       • Removes the client from the connection pool on any exception.
     """
     # ── VALIDATION before accepting ──────────────────────────────────────────
-    patient = fetchone("SELECT id FROM patients WHERE id = ?", (patient_id,))
+    db = SessionLocal()
+    try:
+        patient = fetchone("SELECT id FROM patients WHERE id = ?", (patient_id,), db=db)
+    finally:
+        db.close()
     if patient is None:
         # Reject with 4004 close code before accepting to avoid server-side leak
         await websocket.accept()
@@ -121,6 +126,22 @@ async def websocket_endpoint(websocket: WebSocket, patient_id: int):
             data = await websocket.receive_text()
             if data == "ping":
                 await websocket.send_text(json.dumps({"type": "pong"}))
+                # Push IoT snapshot on heartbeat to keep hardware UI fresh
+                try:
+                    from app.iot.iot_service import get_dispenser_status, get_hardware_alerts, get_hardware_history
+                    await websocket.send_text(
+                        json.dumps(
+                            {
+                                "type": "iot_snapshot",
+                                "patient_id": patient_id,
+                                "dispenser": get_dispenser_status(patient_id),
+                                "alerts": get_hardware_alerts(patient_id, limit=20),
+                                "history": get_hardware_history(patient_id, limit=30),
+                            }
+                        )
+                    )
+                except Exception:
+                    pass
     except WebSocketDisconnect:
         # Normal clean client disconnect
         manager.disconnect(patient_id, websocket)
