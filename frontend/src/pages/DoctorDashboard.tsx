@@ -1,35 +1,56 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { TrendingUp, TrendingDown, Minus, AlertTriangle, Pill, Calendar, Activity } from 'lucide-react';
-import DoctorLayout, { MOCK_PATIENTS } from '../layouts/DoctorLayout';
+import DoctorLayout from '../layouts/DoctorLayout';
 import DeteriorationSignals from '../components/DeteriorationSignals';
 
-const BIOMARKER_DATA: Record<number, Array<{ type: string; value: number; unit: string; trend: 'up' | 'down' | 'stable'; readings: number[] }>> = {
-    1: [
+interface PatientDetail {
+    abha_id: string;
+    name: string;
+    age: number;
+    gender: string;
+    blood_group: string;
+    conditions: string[];
+    allergies: string[];
+    history: { date: string; event: string; facility: string }[];
+}
+
+// Simulated biomarker data keyed by some ABHA IDs (fallback to generic)
+const BIOMARKER_DATA: Record<string, Array<{ type: string; value: number; unit: string; trend: 'up' | 'down' | 'stable'; readings: number[] }>> = {
+    'ABHA-1001': [
         { type: 'Systolic BP', value: 148, unit: 'mmHg', trend: 'up', readings: [132, 138, 141, 145, 148] },
         { type: 'Diastolic BP', value: 92, unit: 'mmHg', trend: 'up', readings: [80, 84, 87, 90, 92] },
         { type: 'Fasting Glucose', value: 138, unit: 'mg/dL', trend: 'up', readings: [115, 122, 128, 134, 138] },
         { type: 'HbA1c', value: 7.8, unit: '%', trend: 'up', readings: [6.9, 7.1, 7.4, 7.6, 7.8] },
         { type: 'Creatinine', value: 1.1, unit: 'mg/dL', trend: 'stable', readings: [1.0, 1.0, 1.1, 1.1, 1.1] },
     ],
-    2: [
+    'ABHA-1002': [
         { type: 'Systolic BP', value: 136, unit: 'mmHg', trend: 'down', readings: [148, 144, 140, 138, 136] },
         { type: 'Diastolic BP', value: 84, unit: 'mmHg', trend: 'down', readings: [95, 90, 88, 86, 84] },
         { type: 'Fasting Glucose', value: 98, unit: 'mg/dL', trend: 'stable', readings: [100, 99, 97, 98, 98] },
     ],
 };
 
-const MEDICATIONS: Record<number, Array<{ name: string; dose: string; time: string; interaction: boolean; note?: string }>> = {
-    1: [
+const DEFAULT_BIOMARKERS = [
+    { type: 'Systolic BP', value: 128, unit: 'mmHg', trend: 'stable' as const, readings: [130, 129, 128, 127, 128] },
+    { type: 'Fasting Glucose', value: 110, unit: 'mg/dL', trend: 'stable' as const, readings: [112, 111, 110, 110, 110] },
+];
+
+const MEDICATIONS: Record<string, Array<{ name: string; dose: string; time: string; interaction: boolean; note?: string }>> = {
+    'ABHA-1001': [
         { name: 'Metformin 500mg', dose: '500mg', time: 'Twice daily', interaction: false },
         { name: 'Amlodipine 5mg', dose: '5mg', time: 'Once daily', interaction: true, note: 'Possible interaction with Simvastatin — monitor LFT' },
         { name: 'Aspirin 75mg', dose: '75mg', time: 'Once daily', interaction: false },
         { name: 'Atorvastatin', dose: '10mg', time: 'Night', interaction: true, note: 'Statin + Amlodipine: monitor for myopathy' },
     ],
-    2: [
+    'ABHA-1002': [
         { name: 'Losartan 50mg', dose: '50mg', time: 'Once daily', interaction: false },
         { name: 'Hydrochlorothiazide', dose: '12.5mg', time: 'Morning', interaction: false },
     ],
 };
+
+const DEFAULT_MEDS: Array<{ name: string; dose: string; time: string; interaction: boolean; note?: string }> = [
+    { name: 'Metformin 500mg', dose: '500mg', time: 'Twice daily', interaction: false },
+];
 
 function TrendIcon({ trend }: { trend: 'up' | 'down' | 'stable' }) {
     if (trend === 'up') return <TrendingUp size={14} color="#ef4444" />;
@@ -38,13 +59,39 @@ function TrendIcon({ trend }: { trend: 'up' | 'down' | 'stable' }) {
 }
 
 export default function DoctorDashboard() {
-    const [selectedId, setSelectedId] = useState<number>(1);
-    const patient = MOCK_PATIENTS.find((p) => p.id === selectedId) ?? MOCK_PATIENTS[0];
-    const biomarkers = BIOMARKER_DATA[selectedId] ?? BIOMARKER_DATA[1];
-    const meds = MEDICATIONS[selectedId] ?? MEDICATIONS[1];
+    const [selectedId, setSelectedId] = useState<string | null>(null);
+    const [patient, setPatient] = useState<PatientDetail | null>(null);
 
-    const riskScore = patient.risk === 'Critical' ? 95 : patient.risk === 'High' ? 80 : patient.risk === 'Moderate' ? 55 : 25;
-    const riskColor = patient.risk === 'Critical' ? '#ef4444' : patient.risk === 'High' ? '#f59e0b' : patient.risk === 'Moderate' ? '#3b82f6' : '#10b981';
+    // Fetch patient detail when selection changes
+    useEffect(() => {
+        if (!selectedId) { setPatient(null); return; }
+        fetch(`/abha/lookup/${encodeURIComponent(selectedId)}`)
+            .then(r => r.json())
+            .then(data => setPatient(data))
+            .catch(() => setPatient(null));
+    }, [selectedId]);
+
+    const biomarkers = (selectedId && BIOMARKER_DATA[selectedId]) || DEFAULT_BIOMARKERS;
+    const meds = (selectedId && MEDICATIONS[selectedId]) || DEFAULT_MEDS;
+
+    const riskScore = patient
+        ? (patient.conditions.length >= 2 && patient.conditions.some(c => c.includes('CKD') || c.includes('Kidney'))) ? 95
+        : patient.conditions.length >= 2 ? 80
+        : patient.conditions.some(c => c.includes('Diabetes')) ? 55
+        : 25
+        : 0;
+    const riskLabel = riskScore >= 90 ? 'Critical' : riskScore >= 70 ? 'High' : riskScore >= 40 ? 'Moderate' : 'Low';
+    const riskColor = riskScore >= 90 ? '#ef4444' : riskScore >= 70 ? '#f59e0b' : riskScore >= 40 ? '#3b82f6' : '#10b981';
+
+    if (!patient) {
+        return (
+            <DoctorLayout selectedId={selectedId} onSelectPatient={setSelectedId}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', color: '#94a3b8', fontSize: 15 }}>
+                    Select a patient from the sidebar to view their details
+                </div>
+            </DoctorLayout>
+        );
+    }
 
     return (
         <DoctorLayout selectedId={selectedId} onSelectPatient={setSelectedId}>
@@ -54,16 +101,20 @@ export default function DoctorDashboard() {
                     <h1 style={{ fontSize: 26, fontWeight: 800, color: '#0f172a', letterSpacing: '-0.02em', marginBottom: 4 }}>
                         {patient.name}
                     </h1>
-                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: 13, color: '#64748b' }}>Age {patient.age}</span>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                        <span style={{ fontSize: 13, color: '#64748b' }}>Age {patient.age} · {patient.gender} · {patient.blood_group}</span>
                         {patient.conditions.map((c) => (
                             <span key={c} className="badge badge-blue">{c}</span>
                         ))}
+                        {patient.allergies.map((a) => (
+                            <span key={a} style={{ fontSize: 11, padding: '2px 8px', borderRadius: 12, background: 'rgba(245,158,11,0.1)', color: '#b45309', fontWeight: 600, border: '1px solid rgba(245,158,11,0.2)' }}>⚠ {a}</span>
+                        ))}
                     </div>
+                    <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 6 }}>ABHA: {patient.abha_id}</div>
                 </div>
                 <div style={{ padding: '14px 20px', borderRadius: 16, background: `${riskColor}15`, border: `1px solid ${riskColor}30`, textAlign: 'center' }}>
                     <div style={{ fontSize: 32, fontWeight: 900, color: riskColor, lineHeight: 1 }}>{riskScore}</div>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: riskColor, marginTop: 2 }}>{patient.risk.toUpperCase()} RISK</div>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: riskColor, marginTop: 2 }}>{riskLabel.toUpperCase()} RISK</div>
                 </div>
             </div>
 
