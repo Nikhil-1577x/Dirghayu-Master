@@ -9,285 +9,235 @@ $$$$$$$  |$$$$$$\ $$ |  $$ |\$$$$$$  |$$ |  $$ |$$ |  $$ |   $$ |    \$$$$$$  |
 \_______/ \______|\__|  \__| \______/ \__|  \__|\__|  \__|   \__|     \______/ 
 ```
 
-# Smart Medication Adherence System
+# 🏥 Smart Healthcare Monitoring System
 
-> Production-grade Python backend + React frontend for a smart pill dispenser system.  
-> Stack: **FastAPI · React · SQLite · Mosquitto MQTT · APScheduler · Twilio · ReportLab · WebSockets**
-
----
-
-## Project Structure
-
-```
-Backend/
-├── app/
-│   ├── main.py              # FastAPI entrypoint
-│   ├── config.py            # Settings from .env
-│   ├── database.py          # SQLite init + schema
-│   ├── models/              # Pydantic schemas
-│   ├── services/            # Business logic
-│   ├── api/                 # REST + WebSocket routes
-│   ├── utils/               # db_utils, time_utils, constants
-│   └── ai_modules/          # OCR, risk prediction, narrative
-├── Frontend/               # React + Vite + Tailwind
-│   ├── src/
-│   │   ├── api/            # API client, endpoints, hooks
-│   │   ├── components/
-│   │   └── pages/
-│   └── package.json
-├── requirements.txt
-├── .env.example
-└── README.md
-```
+A full-stack intelligent healthcare platform that integrates **AI-based risk prediction**, **OCR-driven biomarker extraction**, and **IoT-enabled medication tracking** to provide real-time patient monitoring and clinical insights.
 
 ---
 
-## Quick Start
+## 🚀 Features
 
-### 1. Create virtual environment
+### 🧠 AI Risk Prediction Engine
+- Combines:
+  - LSTM-based time-series prediction
+  - Clinical risk scoring (QRISK-style logic)
+  - Behavioral pattern analysis
+- Generates real-time patient risk scores
+- Detects early deterioration signals
 
-```bash
-python -m venv venv
-# Windows
-venv\Scripts\activate
-# Linux/macOS
-source venv/bin/activate
-```
+---
 
-### 2. Install dependencies
+### 📄 OCR-Based Report Processing
+- Upload lab reports (images/PDFs)
+- Automatically extracts:
+  - Glucose (fasting/random)
+  - HbA1c
+  - Blood Pressure
+- Features:
+  - Multi-rotation OCR
+  - Smart regex parsing
+  - Noise-tolerant numeric extraction
 
-```bash
-pip install -r requirements.txt
-```
+---
 
-### 3. Configure environment
+### 📊 Patient Dashboard
+- Biomarker trends (graphs)
+- Risk visualization
+- Behavioral alerts
+- Medication adherence insights
+- Deterioration signals
 
-```bash
-cp .env.example .env
-# Edit .env with your Twilio credentials and MQTT settings
-```
+---
 
-### 4. Install and start Mosquitto MQTT broker
+### 💊 IoT Integration (Hardware-Ready)
+- Smart medication dispenser support
+- Tracks:
+  - Dose taken / missed
+  - Hardware alerts (buzzer, etc.)
+- MQTT-based communication
+- Designed for cloud + edge interaction
 
-```bash
-# Windows (download from https://mosquitto.org/download/)
-net start mosquitto
+---
 
-# Linux
-sudo apt install mosquitto mosquitto-clients
-sudo systemctl start mosquitto
-```
+### 🧾 PDF Patient Summary
+Auto-generated report including:
+- Health summary
+- 1-month biomarker trends
+- Medication adherence rate
+- Behavioral anomalies (timestamped)
+- Risk & deterioration signals
 
-### 5. Start the backend
+---
 
-Activate the virtual environment first, then run:
+### 💬 Real-Time Communication
+- WebSocket-based chat:
+  - Doctor ↔ Caretaker
+  - Doctor ↔ CHO
+- Live updates and alerts
 
-```bash
-# Windows (PowerShell) — recommended: frees port 8000 first (avoids stale uvicorn workers returning HTTP 500)
+---
+
+### 📲 SMS Alerts
+- Integrated with Twilio
+- Sends alerts for:
+  - Missed medication
+  - Critical risk detection
+
+---
+
+## 🏗️ Tech Stack
+
+### Frontend
+- React (Vite)
+- Tailwind CSS
+- Charting libraries
+
+### Backend
+- FastAPI
+- WebSockets
+- MQTT integration
+
+### Database
+- PostgreSQL (Render)
+
+### AI/ML
+- LSTM (time-series prediction)
+- Rule-based behavioral analysis
+- Clinical scoring logic
+
+### IoT
+- Arduino / ESP devices
+- MQTT protocol (HiveMQ / public broker)
+
+### Integrations
+- Twilio (SMS)
+- OCR Engine (Tesseract or equivalent)
+
+---
+
+## ⚙️ Architecture
+
+IoT Device (Dispenser)
+↓ (MQTT)
+MQTT Broker
+↓
+Backend (FastAPI)
+├── OCR Engine
+├── Risk Engine (LSTM + Rules)
+├── Alert System
+↓
+PostgreSQL Database
+↓
+WebSocket/API Layer
+↓
+Frontend Dashboard
+
+---
+
+## 🌐 Deployment
+
+### Backend (Render)
+- Python FastAPI service
+- Connected to PostgreSQL
+
+### Frontend (Vercel)
+- React app
+
+---
+
+## 🔑 Environment Variables
+
+### Backend (.env)
+DATABASE_URL=your_postgres_url
+ENABLE_IOT=false
+MQTT_BROKER=broker.hivemq.com
+TWILIO_ACCOUNT_SID=your_sid
+TWILIO_AUTH_TOKEN=your_token
+
+### Frontend (.env)
+VITE_API_BASE_URL=https://your-backend-url
+
+---
+
+## 🧪 Run Locally
+
+### Backend
 cd Backend
-.\run-backend.ps1
+pip install -r requirements.txt
+uvicorn app.main:app --reload
 
-# Or manually (if you see HTTP 500 on every route, stop all Python on port 8000 and restart)
-.\venv\Scripts\Activate.ps1
-python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
-
-# Dev with auto-reload (if port 8000 acts broken, restart without --reload or run run-backend.ps1)
-# python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
-```
-
-Backend runs at: **http://localhost:8000**  
-API docs: **http://localhost:8000/docs**
-
-### 5a. OCR dependencies (EasyOCR)
-
-This project uses EasyOCR for robust lab-report OCR with fewer Windows CPU
-dependency/version issues than PaddleOCR.
-
-### 6. Start the frontend (development)
-
-```bash
-# Windows (PowerShell) – use semicolons instead of &&
-cd Frontend; npm install; npm run dev
-
-# Or run each command separately
+### Frontend
 cd Frontend
 npm install
 npm run dev
-```
-
-Frontend runs at: **http://localhost:5173** and proxies API/WebSocket to the backend (`/patient`, `/iot`, `/abha`, **`/analyze-report`** for lab OCR, `/ws`, `/health`, `/docs`, `/openapi.json`). For local dev, leave **`VITE_API_URL` empty** in `frontend/.env` so requests stay same-origin and use this proxy.
-
-**Production:** Build the frontend (`npm run build` in `frontend`), then start the backend. The built app is served from `/` when `frontend/dist` exists.
 
 ---
 
-## API Endpoints
+## 🧠 How It Works
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/` | Health check |
-| `POST` | `/patient/` | Create patient |
-| `GET` | `/patient/` | List all patients |
-| `GET` | `/patient/{id}` | Get patient |
-| `GET` | `/patient/{id}/dashboard` | Full dashboard |
-| `GET` | `/patient/{id}/adherence` | Adherence stats |
-| `GET` | `/patient/{id}/biomarkers` | Biomarker readings |
-| `POST` | `/patient/{id}/biomarkers` | Add biomarker manually |
-| `POST` | `/patient/{id}/biomarkers/ocr` | OCR image upload |
-| `GET` | `/patient/{id}/risk` | Latest risk score |
-| `POST` | `/patient/{id}/risk/compute` | Force recompute risk |
-| `GET` | `/patient/{id}/alerts` | Alert history |
-| `POST` | `/patient/{id}/report` | Generate PDF report |
-| `GET` | `/patient/{id}/reports` | List reports |
-| `GET` | `/patient/{id}/report/download/{report_id}` | Download PDF |
-| `POST` | `/patient/{id}/medication` | Add medication |
-| `GET` | `/patient/{id}/medications` | List medications |
-| `POST` | `/patient/{id}/medications/check-interactions` | Check drug interactions & trigger severe alerts |
-| `GET` | `/drug-interactions` | List CDSCO drug interaction database |
-| `GET` | `/patient/{id}/environment` | DHT22 environment readings |
-| `POST` | `/patient/{id}/appointment` | Add appointment |
-| `GET` | `/patient/{id}/appointments` | List appointments |
-| `WS` | `/ws/{patient_id}` | WebSocket realtime events |
+1. Data Collection
+   - OCR extracts biomarkers
+   - IoT sends medication data
+
+2. Processing
+   - Stored in PostgreSQL
+   - Feature engineering applied
+
+3. Risk Analysis
+   - LSTM predicts future risk
+   - Clinical model evaluates baseline
+   - Behavioral engine detects anomalies
+
+4. Output
+   - Dashboard updates
+   - Alerts triggered
+   - PDF summaries generated
 
 ---
 
-## Example API Responses
+## 🔒 IoT Mode
 
-### GET /patient/1/dashboard
-
-```json
-{
-  "patient": {
-    "id": 1, "name": "Jane Doe", "age": 62,
-    "gender": "female", "phone": "+1234567890"
-  },
-  "latest_biomarkers": {
-    "blood_glucose": {"value": 97.5, "timestamp": "2026-03-08T14:00:00+00:00"}
-  },
-  "risk_score": {"score": 23.5, "risk_level": "LOW", "timestamp": "..."},
-  "weekly_adherence": {"taken": 18, "missed": 2, "total": 20, "weekly_score": 90.0},
-  "daily_adherence": {"taken": 3, "missed": 0, "total": 3, "daily_score": 100.0},
-  "recent_alerts": []
-}
-```
-
-### GET /patient/1/adherence
-
-```json
-{
-  "patient_id": 1,
-  "daily_adherence": {"taken": 3, "missed": 0, "total": 3, "daily_score": 100.0},
-  "weekly_score": 90.0,
-  "weekly_adherence": {"taken": 18, "missed": 2, "total": 20, "weekly_score": 90.0},
-  "missed_doses": []
-}
-```
-
-### GET /patient/1/risk
-
-```json
-{
-  "patient_id": 1,
-  "id": 5,
-  "score": 23.5,
-  "risk_level": "LOW",
-  "timestamp": "2026-03-08T14:05:00+00:00"
-}
-```
-
-### POST /patient/1/report → 201
-
-```json
-{
-  "patient_id": 1,
-  "file_path": "reports/1_20260308_140500.pdf",
-  "message": "Report generated successfully"
-}
-```
+ENABLE_IOT=true   → Full hardware integration  
+ENABLE_IOT=false  → Cloud-only mode  
 
 ---
 
-## WebSocket Events
+## 📈 Future Improvements
 
-Connect to `ws://localhost:8000/ws/{patient_id}`
-
-### Received event types
-
-```json
-// dose_event
-{"type": "dose_event", "patient_id": 1, "status": "TAKEN", "medication_id": 2, "timestamp": "..."}
-
-// risk_update
-{"type": "risk_update", "patient_id": 1, "score": 35.0, "risk_level": "MODERATE", "timestamp": "..."}
-
-// alert_triggered
-{"type": "alert_triggered", "patient_id": 1, "alert_type": "MISSED_DOSE", "timestamp": "..."}
-```
+- Personalized LSTM models
+- Explainable AI
+- Private MQTT broker
+- ABHA integration
+- Advanced anomaly detection
+- Mobile app support
 
 ---
 
-## MQTT Integration
+## 🎯 Use Cases
 
-The backend subscribes to `pillbox/dose_event` and `pillbox/environment`. Publish JSON payloads to simulate IoT events:
-
-```json
-{
-  "patient_id": 1,
-  "temperature_c": 31.2,
-  "humidity_pct": 68.0,
-  "timestamp": "2026-03-08T08:05:00+00:00"
-}
-```
+- Remote patient monitoring
+- Chronic disease management
+- Rural healthcare systems
+- Preventive analytics
 
 ---
 
-## Adherence Rules
+## 👨‍⚕️ Users
 
-| Status | Condition |
-|--------|-----------|
-| `TAKEN` | Within ±30 minutes of scheduled time |
-| `LATE` | Within 2 hours of scheduled time |
-| `MISSED` | No dose after 2 hours |
-| `DRUG HOLIDAY` | No activity for 18+ hours |
-
-### Risk Levels
-
-| Level | Score Range |
-|-------|-------------|
-| `LOW` | 0 – 39 |
-| `MODERATE` | 40 – 69 |
-| `HIGH` | 70 – 84 |
-| `CRITICAL` | 85 – 100 |
+- Doctors
+- CHOs
+- Caretakers
+- Patients
 
 ---
 
-## Alert Cascade
+## 🧾 License
 
-1. **Missed dose** → WhatsApp to **family** (cooldown: 4h per patient)
-2. **Risk score > 70** → Escalate to **doctor** (cooldown: 12h per patient)
-3. **Drug holiday** → Urgent WhatsApp to **both** (no cooldown)
-4. **Severe drug interaction** → WhatsApp to **doctor**
-5. **High storage temp (>30°C)** → WhatsApp to **family** (escalates to **doctor** >35°C, cooldown: 6h)
-6. **Morning protocol** → Every 7 AM UTC → **patient** (personalized guidelines + exercise tip)
-7. **Daily summary** → Every 8 PM UTC → **family**
-8. **Pre-visit report** → 48h before appointment → PDF + doctor WhatsApp
+Academic and research use only.  
+Production healthcare deployment requires compliance.
 
 ---
 
-## Twilio WhatsApp Setup
+## 💡 One-Line Summary
 
-1. Create account at [twilio.com](https://twilio.com)
-2. Enable WhatsApp Sandbox
-3. Add credentials to `.env`:
-   ```
-   TWILIO_ACCOUNT_SID=ACxxxxxxxx
-   TWILIO_AUTH_TOKEN=xxxxxxxx
-   TWILIO_WHATSAPP_FROM=whatsapp:+14155238886
-   ```
-
----
-
-## API Key Security
-
-Pass header `X-API-Key: <your-key>` (set in `.env`).  
-To enforce, uncomment the `raise HTTPException` line in `main.py::verify_api_key`.
+An AI-powered healthcare platform combining OCR, IoT, and predictive analytics to monitor and prevent patient health deterioration in real time.
